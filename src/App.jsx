@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import * as faceapi from 'face-api.js';
 import './App.css'; 
 
 // Vite reads all images from src/photos/ (any depth) at build time.
@@ -12,9 +13,134 @@ const allPhotos = Object.keys(photoFiles).map((path) => {
   };
 });
 
+const DISTANCE_THRESHOLD = 0.45;
+
+function clusterFaces(detections) {
+  const groups = [];
+  for (const det of detections) {
+    const desc = Array.from(det.descriptor);
+    let bestGroup = null;
+    let bestDist = DISTANCE_THRESHOLD;
+    for (const group of groups) {
+      // Must match ALL existing faces in the group (strict)
+      const distances = group.descriptors.map((d) =>
+        faceapi.euclideanDistance(d, desc)
+      );
+      const maxDist = Math.max(...distances);
+      // Only join if the face is close to EVERY member
+      if (maxDist < DISTANCE_THRESHOLD && maxDist < bestDist) {
+        bestDist = maxDist;
+        bestGroup = group;
+      }
+    }
+    if (bestGroup) {
+      bestGroup.photos.push(det);
+      bestGroup.descriptors.push(desc);
+    } else {
+      groups.push({
+        descriptors: [desc],
+        photos: [det],
+      });
+    }
+  }
+  return groups;
+}
+
 export default function Portfolio() {
   const [activeTab, setActiveTab] = useState('about');
   const [lightbox, setLightbox] = useState(null);
+  const [personas, setPersonas] = useState([]);
+  const [selectedPersona, setSelectedPersona] = useState(null);
+  const [faceLoading, setFaceLoading] = useState(false);
+  const [faceProgress, setFaceProgress] = useState('');
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+
+  const BASE = import.meta.env.BASE_URL;
+
+  const loadModels = useCallback(async () => {
+    if (modelsLoaded) return;
+    const MODEL_URL = `${BASE}models`;
+    await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    setModelsLoaded(true);
+  }, [modelsLoaded, BASE]);
+
+  function resizeForDetection(img, maxDim = 1200) {
+    const { width, height } = img;
+    if (width <= maxDim && height <= maxDim) return img;
+    const scale = maxDim / Math.max(width, height);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(width * scale);
+    canvas.height = Math.round(height * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  async function scanFaces() {
+    setFaceLoading(true);
+    setFaceProgress('Loading face recognition models…');
+    await loadModels();
+
+    const detections = [];
+    for (let i = 0; i < allPhotos.length; i++) {
+      const photo = allPhotos[i];
+      setFaceProgress(`Scanning photo ${i + 1} of ${allPhotos.length}…`);
+      try {
+        const img = await faceapi.fetchImage(photo.url);
+        const input = resizeForDetection(img);
+        const results = await faceapi
+          .detectAllFaces(input)
+          .withFaceLandmarks()
+          .withFaceDescriptors();
+        for (const r of results) {
+          const box = r.detection.box;
+          // Crop face with padding for a nice avatar
+          const pad = Math.max(box.width, box.height) * 0.5;
+          const sx = Math.max(0, box.x - pad);
+          const sy = Math.max(0, box.y - pad);
+          const sw = Math.min(input.width || img.width, box.width + pad * 2);
+          const sh = Math.min(input.height || img.height, box.height + pad * 2);
+          const cropCanvas = document.createElement('canvas');
+          cropCanvas.width = 128;
+          cropCanvas.height = 128;
+          const cctx = cropCanvas.getContext('2d');
+          cctx.drawImage(input, sx, sy, sw, sh, 0, 0, 128, 128);
+          detections.push({
+            photoUrl: photo.url,
+            filename: photo.filename,
+            descriptor: r.descriptor,
+            box,
+            faceThumb: cropCanvas.toDataURL('image/jpeg', 0.85),
+          });
+        }
+      } catch (err) {
+        console.warn(`Skipped ${photo.filename}:`, err);
+      }
+    }
+
+    setFaceProgress('Grouping faces…');
+    const groups = clusterFaces(detections);
+    setPersonas(
+      groups
+        .filter((g) => g.photos.length > 0)
+        .map((g, i) => ({
+          id: i,
+          label: `Person ${i + 1}`,
+          thumbUrl: g.photos[0].faceThumb,
+          photos: g.photos,
+        }))
+    );
+    setFaceLoading(false);
+    setFaceProgress('');
+  }
+
+  useEffect(() => {
+    if (activeTab === 'work' && personas.length === 0 && !faceLoading) {
+      scanFaces();
+    }
+  }, [activeTab]);
 
   return (
     <div className="portfolio-container">
@@ -129,8 +255,48 @@ export default function Portfolio() {
             </div>
           )}
 
+          {/* ── People Section ── */}
+          {faceLoading && (
+            <div className="persona-loading glass-card">
+              <div className="spinner" />
+              <p>{faceProgress}</p>
+            </div>
+          )}
+
+          {!faceLoading && personas.length > 0 && (
+            <div className="personas-inline">
+              <h3 className="personas-inline-title">
+                People
+                {selectedPersona && (
+                  <button className="back-btn" onClick={() => setSelectedPersona(null)}>
+                    Show all photos
+                  </button>
+                )}
+              </h3>
+              <div className="persona-row">
+                {personas.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`persona-chip ${selectedPersona?.id === p.id ? 'persona-chip-active' : ''}`}
+                    onClick={() => setSelectedPersona(selectedPersona?.id === p.id ? null : p)}
+                  >
+                    <div className="persona-avatar">
+                      <img src={p.thumbUrl} alt={p.label} />
+                    </div>
+                    <span className="persona-chip-label">{p.label}</span>
+                    <span className="persona-chip-count">{p.photos.length}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Photo Grid ── */}
           <div className="photo-grid">
-            {allPhotos.map((photo, i) => (
+            {(selectedPersona
+              ? selectedPersona.photos.map((det) => ({ url: det.photoUrl, filename: det.filename }))
+              : allPhotos
+            ).map((photo, i) => (
               <div
                 key={i}
                 className="photo-item"
@@ -138,7 +304,6 @@ export default function Portfolio() {
               >
                 <img src={photo.url} alt={photo.filename} loading="lazy" />
                 <div className="photo-overlay">
-                  <span className="photo-name">{photo.filename}</span>
                   <span className="photo-view">Click to expand &#8599;</span>
                 </div>
               </div>

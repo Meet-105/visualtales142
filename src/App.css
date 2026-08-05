@@ -543,6 +543,186 @@ body {
   transform: scale(1.1);
 }
 
+/* ── Personas (inline in Work tab) ─────────────────── */
+.personas-inline {
+  margin-bottom: 2.5rem;
+}
+
+.personas-inline-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #999;
+  letter-spacing: 1px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.persona-row {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.persona-row::-webkit-scrollbar {
+  height: 4px;
+}
+
+.persona-row::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.persona-row::-webkit-scrollbar-thumb {
+  background: rgba(180, 140, 255, 0.15);
+  border-radius: 2px;
+}
+
+.persona-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  min-width: 80px;
+  transition: all 0.3s ease;
+}
+
+.persona-chip:hover {
+  transform: translateY(-3px);
+}
+
+.persona-chip:hover .persona-avatar {
+  border-color: rgba(180, 140, 255, 0.5);
+  box-shadow: 0 0 16px rgba(180, 140, 255, 0.15);
+}
+
+.persona-chip-active {
+  transform: translateY(-4px);
+}
+
+.persona-chip-active .persona-avatar {
+  width: 80px;
+  height: 80px;
+  border-color: rgba(180, 140, 255, 0.6);
+  box-shadow: 0 0 20px rgba(180, 140, 255, 0.3), 0 0 40px rgba(180, 140, 255, 0.1);
+}
+
+.persona-chip-active .persona-chip-label {
+  color: #fff;
+}
+
+.persona-chip-active .persona-chip-count {
+  color: rgba(180, 140, 255, 0.7);
+}
+
+.persona-chip-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #aaa;
+  letter-spacing: 0.5px;
+}
+
+.persona-chip-count {
+  font-size: 0.6rem;
+  color: #666;
+  letter-spacing: 1px;
+}
+
+.selected-persona-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.persona-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(180, 140, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.persona-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.persona-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.persona-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: #ddd;
+}
+
+.persona-count {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.persona-loading {
+  text-align: center;
+  padding: 4rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.persona-loading p {
+  font-size: 0.85rem;
+  color: #888;
+  letter-spacing: 0.5px;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(180, 140, 255, 0.5);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.back-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 0.45rem 1.25rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #999;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
 /* ── Empty State ──────────────────────────────────── */
 .empty-state {
   text-align: center;
