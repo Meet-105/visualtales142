@@ -245,22 +245,52 @@ body {
   flex: 1;
 }
 
-.about-card {
-  max-width: 640px;
-  text-align: center;
-  padding: 3rem;
+.about-hero {
+  max-width: 800px;
+  padding: 2.5rem;
 }
 
-.about-card h2 {
+.about-hero-inner {
+  display: flex;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+.profile-photo {
+  flex-shrink: 0;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(180, 140, 255, 0.2);
+  box-shadow: 0 0 30px rgba(180, 140, 255, 0.1), 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.profile-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.about-hero-text h2 {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 400;
   letter-spacing: 1px;
   color: #e0e0e0;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.25rem;
 }
 
-.about-card p {
+.about-role {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(180, 140, 255, 0.6);
+  margin-bottom: 1.25rem;
+}
+
+.about-hero-text p {
   font-size: 0.95rem;
   font-weight: 300;
   color: #888;
@@ -268,45 +298,111 @@ body {
   margin-bottom: 0.75rem;
 }
 
-/* ── Interests / Tags ─────────────────────────────── */
-.about-interests {
-  max-width: 640px;
-  text-align: center;
-  padding: 2.5rem 3rem;
-}
-
-.about-interests h3 {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.15rem;
-  font-weight: 400;
-  color: #ccc;
-  margin-bottom: 1.25rem;
-}
-
-.interest-tags {
+.social-links {
   display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.6rem;
 }
 
-.tag {
+.social-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Inter', sans-serif;
   font-size: 0.72rem;
   font-weight: 500;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  padding: 0.5rem 1.25rem;
+  text-decoration: none;
+  color: #999;
+  padding: 0.45rem 1rem;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #999;
   transition: all 0.3s ease;
 }
 
-.tag:hover {
-  background: rgba(180, 140, 255, 0.1);
-  border-color: rgba(180, 140, 255, 0.25);
+.social-link:hover {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(180, 140, 255, 0.15), rgba(100, 180, 255, 0.1));
+  border-color: rgba(180, 140, 255, 0.3);
+  box-shadow: 0 2px 12px rgba(180, 140, 255, 0.12);
+}
+
+.social-link svg {
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+.social-link:hover svg {
+  opacity: 1;
+}
+
+/* ── Interests / What I Shoot ─────────────────────── */
+.about-interests {
+  max-width: 800px;
+  text-align: center;
+}
+
+.interests-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 400;
   color: #ccc;
+  margin-bottom: 1.5rem;
+  letter-spacing: 1px;
+}
+
+.interests-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.interest-card {
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  transition: all 0.35s ease;
+  cursor: default;
+}
+
+.interest-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(180, 140, 255, 0.2);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.interest-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+  filter: grayscale(0.3);
+  transition: filter 0.3s ease;
+}
+
+.interest-card:hover .interest-icon {
+  filter: grayscale(0);
+}
+
+.interest-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: #ddd;
+  letter-spacing: 0.5px;
+}
+
+.interest-desc {
+  font-size: 0.72rem;
+  font-weight: 300;
+  color: #666;
+  line-height: 1.5;
+  letter-spacing: 0.3px;
 }
 
 /* ── Stats ────────────────────────────────────────── */
@@ -805,9 +901,26 @@ footer p {
     padding: 2.5rem 1rem;
   }
 
-  .about-card,
-  .about-interests {
+  .about-hero {
     padding: 2rem 1.5rem;
+  }
+
+  .interests-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .about-hero-inner {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .profile-photo {
+    width: 140px;
+    height: 140px;
+  }
+
+  .social-links {
+    justify-content: center;
   }
 
   .gallery-section {
