@@ -64,6 +64,9 @@ export default function Portfolio() {
   const [uploadQueue, setUploadQueue] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [basePhotos, setBasePhotos] = useState(manifestPhotos);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedUrls, setSelectedUrls] = useState(new Set());
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const BASE = import.meta.env.BASE_URL;
   const basePhotoUrls = new Set(basePhotos.map((p) => p.url));
@@ -71,6 +74,60 @@ export default function Portfolio() {
     ...uploadedPhotos.filter((p) => !basePhotoUrls.has(p.url)),
     ...basePhotos,
   ];
+
+  const currentPhotos = selectedPersona
+    ? selectedPersona.photos.map((det) => ({ url: det.photoUrl, filename: det.filename }))
+    : displayPhotos;
+
+  function toggleSelectMode() {
+    setSelectMode((prev) => {
+      if (prev) setSelectedUrls(new Set());
+      return !prev;
+    });
+  }
+
+  function togglePhoto(url) {
+    setSelectedUrls((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) next.delete(url);
+      else next.add(url);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelectedUrls(new Set(currentPhotos.map((p) => p.url)));
+  }
+
+  function deselectAll() {
+    setSelectedUrls(new Set());
+  }
+
+  async function downloadSelected() {
+    const toDownload = currentPhotos.filter((p) => selectedUrls.has(p.url));
+    if (toDownload.length === 0) return;
+    setIsDownloading(true);
+    for (const photo of toDownload) {
+      try {
+        const res = await fetch(photo.url);
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = photo.filename || 'photo.jpg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        // Small delay between downloads to avoid browser blocking
+        await new Promise((r) => setTimeout(r, 300));
+      } catch (err) {
+        console.warn(`Failed to download ${photo.filename}:`, err);
+      }
+    }
+    setIsDownloading(false);
+    setSelectMode(false);
+    setSelectedUrls(new Set());
+  }
 
   const refreshPhotosFromCloudinary = useCallback(async () => {
     try {
@@ -395,6 +452,12 @@ export default function Portfolio() {
               <span className="photo-count">
                 {displayPhotos.length} {displayPhotos.length === 1 ? 'photo' : 'photos'}
               </span>
+              <button
+                className={`select-btn ${selectMode ? 'select-btn-active' : ''}`}
+                onClick={toggleSelectMode}
+              >
+                {selectMode ? 'Cancel' : 'Select'}
+              </button>
               <label className={`upload-btn ${isUploading ? 'upload-btn-disabled' : ''}`}>
                 <input
                   type="file"
@@ -452,7 +515,7 @@ export default function Portfolio() {
                   <div
                     key={p.id}
                     className={`persona-chip ${selectedPersona?.id === p.id ? 'persona-chip-active' : ''}`}
-                    onClick={() => setSelectedPersona(selectedPersona?.id === p.id ? null : p)}
+                    onClick={() => { setSelectedPersona(selectedPersona?.id === p.id ? null : p); setSelectedUrls(new Set()); }}
                   >
                     <div className="persona-avatar">
                       <img src={p.thumbUrl} alt={p.label} />
@@ -465,21 +528,48 @@ export default function Portfolio() {
             </div>
           )}
 
+          {/* ── Selection Bar ── */}
+          {selectMode && (
+            <div className="selection-bar glass-card">
+              <span className="selection-count">
+                {selectedUrls.size} of {currentPhotos.length} selected
+              </span>
+              <div className="selection-actions">
+                {selectedUrls.size < currentPhotos.length ? (
+                  <button className="select-all-btn" onClick={selectAll}>Select All</button>
+                ) : (
+                  <button className="select-all-btn" onClick={deselectAll}>Deselect All</button>
+                )}
+                <button
+                  className={`download-btn ${selectedUrls.size === 0 || isDownloading ? 'download-btn-disabled' : ''}`}
+                  onClick={downloadSelected}
+                  disabled={selectedUrls.size === 0 || isDownloading}
+                >
+                  {isDownloading ? 'Downloading…' : `Download (${selectedUrls.size})`}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ── Photo Grid ── */}
           <div className="photo-grid">
-            {(selectedPersona
-              ? selectedPersona.photos.map((det) => ({ url: det.photoUrl, filename: det.filename }))
-              : displayPhotos
-            ).map((photo, i) => (
+            {currentPhotos.map((photo, i) => (
               <div
                 key={i}
-                className="photo-item"
-                onClick={() => setLightbox(photo)}
+                className={`photo-item ${selectMode && selectedUrls.has(photo.url) ? 'photo-selected' : ''}`}
+                onClick={() => selectMode ? togglePhoto(photo.url) : setLightbox(photo)}
               >
                 <img src={photo.url} alt={photo.filename} loading="lazy" />
-                <div className="photo-overlay">
-                  <span className="photo-view">Click to expand &#8599;</span>
-                </div>
+                {selectMode && (
+                  <div className="photo-checkbox">
+                    {selectedUrls.has(photo.url) ? '\u2713' : ''}
+                  </div>
+                )}
+                {!selectMode && (
+                  <div className="photo-overlay">
+                    <span className="photo-view">Click to expand &#8599;</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
