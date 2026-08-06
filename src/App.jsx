@@ -3,13 +3,14 @@ import * as faceapi from 'face-api.js';
 import './App.css';
 import cloudinaryManifest from './photos-manifest.json';
 
-// All photos are hosted on Cloudinary (see scripts/upload-to-cloudinary.mjs
-// for bulk uploads, or the in-app upload button for new photos).
-const allPhotos = cloudinaryManifest;
+// Static fallback used only if the live Cloudinary listing (Netlify
+// function) is unreachable, e.g. during `vite dev` without `netlify dev`.
+const manifestPhotos = cloudinaryManifest;
 
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 const UPLOADED_PHOTOS_KEY = 'visualtales142_uploaded_photos';
+const LIST_PHOTOS_ENDPOINT = '/.netlify/functions/list-photos';
 
 const DISTANCE_THRESHOLD = 0.45;
 
@@ -62,9 +63,31 @@ export default function Portfolio() {
   });
   const [uploadQueue, setUploadQueue] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [basePhotos, setBasePhotos] = useState(manifestPhotos);
 
   const BASE = import.meta.env.BASE_URL;
-  const displayPhotos = [...uploadedPhotos, ...allPhotos];
+  const basePhotoUrls = new Set(basePhotos.map((p) => p.url));
+  const displayPhotos = [
+    ...uploadedPhotos.filter((p) => !basePhotoUrls.has(p.url)),
+    ...basePhotos,
+  ];
+
+  const refreshPhotosFromCloudinary = useCallback(async () => {
+    try {
+      const res = await fetch(LIST_PHOTOS_ENDPOINT);
+      if (!res.ok) return;
+      const photos = await res.json();
+      if (Array.isArray(photos) && photos.length > 0) {
+        setBasePhotos(photos);
+      }
+    } catch {
+      // Function unavailable (e.g. local `vite dev`) — keep the static fallback.
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshPhotosFromCloudinary();
+  }, [refreshPhotosFromCloudinary]);
 
   async function handleFilesSelected(e) {
     const files = Array.from(e.target.files || []);
@@ -108,6 +131,9 @@ export default function Portfolio() {
         return merged;
       });
       setPersonas([]);
+      // Cloudinary indexes new uploads almost instantly — refresh the live
+      // listing shortly after so all visitors see it, not just this browser.
+      setTimeout(refreshPhotosFromCloudinary, 2000);
     }
 
     setIsUploading(false);
