@@ -1,17 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as faceapi from 'face-api.js';
-import './App.css'; 
+import './App.css';
+import cloudinaryManifest from './photos-manifest.json';
 
-// Vite reads all images from src/photos/ (any depth) at build time.
-const photoFiles = import.meta.glob('/src/photos/**/*.{jpg,jpeg,png,webp}', { eager: true });
+// All photos are hosted on Cloudinary (see scripts/upload-to-cloudinary.mjs
+// for bulk uploads, or the in-app upload button for new photos).
+const allPhotos = cloudinaryManifest;
 
-const allPhotos = Object.keys(photoFiles).map((path) => {
-  const filename = path.split('/').pop();
-  return {
-    url: photoFiles[path].default,
-    filename,
-  };
-});
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+const UPLOADED_PHOTOS_KEY = 'visualtales142_uploaded_photos';
 
 const DISTANCE_THRESHOLD = 0.45;
 
@@ -54,8 +52,68 @@ export default function Portfolio() {
   const [faceLoading, setFaceLoading] = useState(false);
   const [faceProgress, setFaceProgress] = useState('');
   const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [uploadedPhotos, setUploadedPhotos] = useState(() => {
+    try {
+      const stored = localStorage.getItem(UPLOADED_PHOTOS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [uploadQueue, setUploadQueue] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const BASE = import.meta.env.BASE_URL;
+  const displayPhotos = [...uploadedPhotos, ...allPhotos];
+
+  async function handleFilesSelected(e) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadQueue(files.map((f) => ({ name: f.name, status: 'pending' })));
+
+    const newPhotos = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadQueue((q) =>
+        q.map((item, idx) => (idx === i ? { ...item, status: 'uploading' } : item))
+      );
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+          { method: 'POST', body: formData }
+        );
+        if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+        const data = await res.json();
+        newPhotos.push({ url: data.secure_url, filename: file.name });
+        setUploadQueue((q) =>
+          q.map((item, idx) => (idx === i ? { ...item, status: 'done' } : item))
+        );
+      } catch (err) {
+        console.error(`Failed to upload ${file.name}:`, err);
+        setUploadQueue((q) =>
+          q.map((item, idx) => (idx === i ? { ...item, status: 'error' } : item))
+        );
+      }
+    }
+
+    if (newPhotos.length > 0) {
+      setUploadedPhotos((prev) => {
+        const merged = [...newPhotos, ...prev];
+        localStorage.setItem(UPLOADED_PHOTOS_KEY, JSON.stringify(merged));
+        return merged;
+      });
+      setPersonas([]);
+    }
+
+    setIsUploading(false);
+    e.target.value = '';
+    setTimeout(() => setUploadQueue([]), 3000);
+  }
 
   const loadModels = useCallback(async () => {
     if (modelsLoaded) return;
@@ -84,9 +142,9 @@ export default function Portfolio() {
     await loadModels();
 
     const detections = [];
-    for (let i = 0; i < allPhotos.length; i++) {
-      const photo = allPhotos[i];
-      setFaceProgress(`Scanning photo ${i + 1} of ${allPhotos.length}…`);
+    for (let i = 0; i < displayPhotos.length; i++) {
+      const photo = displayPhotos[i];
+      setFaceProgress(`Scanning photo ${i + 1} of ${displayPhotos.length}…`);
       try {
         const img = await faceapi.fetchImage(photo.url);
         const input = resizeForDetection(img);
@@ -140,7 +198,7 @@ export default function Portfolio() {
     if (activeTab === 'work' && personas.length === 0 && !faceLoading) {
       scanFaces();
     }
-  }, [activeTab]);
+  }, [activeTab, uploadedPhotos]);
 
   return (
     <div className="portfolio-container">
@@ -280,7 +338,7 @@ export default function Portfolio() {
 
           <div className="about-stats">
             <div className="stat glass-card">
-              <span className="stat-number">{allPhotos.length}</span>
+              <span className="stat-number">{displayPhotos.length}</span>
               <span className="stat-label">Photos</span>
             </div>
             <div className="stat glass-card">
@@ -307,16 +365,40 @@ export default function Portfolio() {
         <section className="gallery-section">
           <div className="section-header">
             <h2 className="section-title">All Photos</h2>
-            <span className="photo-count">
-              {allPhotos.length} {allPhotos.length === 1 ? 'photo' : 'photos'}
-            </span>
+            <div className="section-header-actions">
+              <span className="photo-count">
+                {displayPhotos.length} {displayPhotos.length === 1 ? 'photo' : 'photos'}
+              </span>
+              <label className={`upload-btn ${isUploading ? 'upload-btn-disabled' : ''}`}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  disabled={isUploading}
+                  onChange={handleFilesSelected}
+                />
+                {isUploading ? 'Uploading…' : '+ Upload Photos'}
+              </label>
+            </div>
           </div>
 
-          {allPhotos.length === 0 && (
+          {uploadQueue.length > 0 && (
+            <div className="upload-progress glass-card">
+              {uploadQueue.map((item, i) => (
+                <div key={i} className={`upload-progress-item upload-${item.status}`}>
+                  <span className="upload-progress-name">{item.name}</span>
+                  <span className="upload-progress-status">{item.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {displayPhotos.length === 0 && (
             <div className="empty-state glass-card">
               <p>No photos found.</p>
               <p className="empty-hint">
-                Add images to <code>src/photos/</code> to get started.
+                Add images to <code>src/photos/</code> or use the upload button to get started.
               </p>
             </div>
           )}
@@ -361,7 +443,7 @@ export default function Portfolio() {
           <div className="photo-grid">
             {(selectedPersona
               ? selectedPersona.photos.map((det) => ({ url: det.photoUrl, filename: det.filename }))
-              : allPhotos
+              : displayPhotos
             ).map((photo, i) => (
               <div
                 key={i}

@@ -512,6 +512,89 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+/* ── Upload Photos ─────────────────────────────────── */
+.section-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.upload-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 0.45rem 1.1rem;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(180, 140, 255, 0.35), rgba(100, 180, 255, 0.25));
+  border: 1px solid rgba(180, 140, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.upload-btn:hover {
+  box-shadow: 0 2px 16px rgba(180, 140, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.upload-btn-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.upload-progress {
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.upload-progress-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: #999;
+}
+
+.upload-progress-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+
+.upload-progress-status {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 0.15rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.upload-done .upload-progress-status {
+  color: #7ee0a8;
+  background: rgba(126, 224, 168, 0.1);
+}
+
+.upload-error .upload-progress-status {
+  color: #ff8a8a;
+  background: rgba(255, 138, 138, 0.1);
+}
+
+.upload-uploading .upload-progress-status {
+  color: rgba(180, 140, 255, 0.85);
+  background: rgba(180, 140, 255, 0.1);
+}
+
 /* ── Photo Grid (Masonry via CSS columns) ─────────── */
 .photo-grid {
   columns: 3;
@@ -931,6 +1014,11 @@ footer p {
     flex-direction: column;
     gap: 0.75rem;
     text-align: center;
+  }
+
+  .section-header-actions {
+    flex-direction: column;
+    gap: 0.6rem;
   }
 
   .photo-grid {

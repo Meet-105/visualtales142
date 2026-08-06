@@ -6,6 +6,8 @@
   "homepage": "https://Meet-105.github.io/visualtales142",
   "scripts": {
     "convert-heic": "node scripts/convert-heic.mjs",
+    "upload-photos": "node scripts/upload-to-cloudinary.mjs",
+    "create-upload-preset": "node scripts/create-upload-preset.mjs",
     "dev": "npm run convert-heic && vite",
     "build": "npm run convert-heic && vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
@@ -14,6 +16,8 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "cloudinary": "^2.10.0",
+    "dotenv": "^16.6.1",
     "face-api.js": "^0.22.2",
     "heic-convert": "^2.1.0",
     "react": "^18.2.0",

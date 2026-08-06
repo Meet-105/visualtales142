@@ -10,6 +10,7 @@ const unlink = promisify(fs.unlink);
 const PHOTOS_DIR = path.resolve('src/photos');
 
 function walkDir(dir) {
+  if (!fs.existsSync(dir)) return [];
   let results = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const fullPath = path.join(dir, entry.name);
